@@ -1,25 +1,37 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
-    private CharacterController Controler;
+    [Header("Float`s")]
     public float speed;
     public float smoothRotRime;
     public float turnsmoothvelocity;
-    public int dano = 15;
-    private Transform cam;
-
-    private Vector3 moveDirection;
-    private float gravidade = 150;
-
-    private Animator anim;
-
+    public float gravidade = 150;
     public float coliderradius;
+    public float timer = 5f;
+    
+    [Header("Int`s")]
+    public int dano = 15;
+    public int life;
+    
+    [Header("Bool`s")]
+    public bool iswalking;
+    public bool waitfor;
+    public bool ishiting;
+    public bool isdead;
+    
+    [Header("Component`s")]
+    public CharacterController Controler;
+    public Transform cam;
+    public Animator anim;
+    public Vector3 moveDirection;
+    
+    [Header("List")]
     public List<Transform> enemylist = new List<Transform>();
-
-    private bool iswalking;
 
     void Start()
     {
@@ -31,8 +43,25 @@ public class Player : MonoBehaviour
     
     void Update()
     {
-        move();
-        GetMoouseinput();
+        if (!isdead)
+        {
+            move();
+            GetMoouseinput();
+        }
+
+        if (life <= 0)
+        {
+            timer -= Time.deltaTime;
+            if (timer <= 0)
+            {
+                SceneManager.LoadScene(0);
+            }
+        }
+
+        if (life <= 0)
+        {
+            Destroy(gameObject.GetComponent<CharacterController>());
+        }
     }
 
     void move()
@@ -105,25 +134,30 @@ public class Player : MonoBehaviour
 
     IEnumerator atack()
     {
-        anim.SetBool("Atack", true);
-        anim.SetInteger("Transition", 1);
-        yield return new WaitForSeconds(0.52f);
-
-        GetEnemy();
-        
-        foreach (Transform enemys in enemylist)
+        if (!waitfor && !ishiting)
         {
-            Enemy e = enemys.GetComponent<Enemy>();
-            if (e != null)
-            {
-                //e.getHit(dano);
-            }
-        }
+            waitfor = true;
+            anim.SetBool("Atack", true);
+            anim.SetInteger("Transition", 1);
+            yield return new WaitForSeconds(0.52f);
 
-        yield return new WaitForSeconds(1f);
-        
-        anim.SetInteger("Transition", 0);
-        anim.SetBool("Atack", false);
+            GetEnemy();
+
+            foreach (Transform enemys in enemylist)
+            {
+                Enemy e = enemys.GetComponent<Enemy>();
+                if (e != null)
+                {
+                    e.getHit(dano);
+                }
+            }
+
+            yield return new WaitForSeconds(1f);
+
+            anim.SetInteger("Transition", 0);
+            anim.SetBool("Atack", false);
+            waitfor = false;
+        }
     }
 
     void GetEnemy()
@@ -143,4 +177,30 @@ public class Player : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position + transform.forward, coliderradius);
     }
+    
+    public void getHit(int dmg)
+    {
+        life -= dmg;
+        if (life > 0)
+        {
+            StopCoroutine("Matack");
+            anim.SetInteger("Transition", 3);
+            ishiting = true;
+            StartCoroutine("recovery");
+        }
+        else
+        {
+            isdead = true;
+            anim.SetTrigger("dead");
+        }
+    }
+
+    IEnumerator recovery()
+    {
+        yield return new WaitForSeconds(1f);
+        anim.SetInteger("Transition", 0);
+        ishiting = false;
+        anim.SetBool("Atack",false);
+    }
+
 }

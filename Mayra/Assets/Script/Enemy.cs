@@ -1,12 +1,15 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
+using Random = UnityEngine.Random;
 
 public class Enemy : MonoBehaviour
 {
     [Header("Atributos")]
     public float life = 100f;
-    public float atack;
+    public int atack;
     public float speed;
     public float lockradius;
     public float coliderradius = 2f;    
@@ -23,6 +26,12 @@ public class Enemy : MonoBehaviour
     private bool walking;
     private bool waitfor;
     private bool hitting;
+    private bool playerdead;
+
+    [Header("WayPoints")]
+    public List<Transform> points = new List<Transform>();
+    public int currentpatch;
+    public float patchdistance;
     void Start()
     {
         anim = GetComponent<Animator>();
@@ -59,17 +68,17 @@ public class Enemy : MonoBehaviour
             }
             else
             {
-                agent.isStopped = true;
                 anim.SetBool("Slither Forward", false);
                 atacking = false;
                 walking = false;
+                movetowaypoint();
             }
         }
     }
     
     IEnumerator Matack()
     {
-        if(!waitfor && !hitting)
+        if(!waitfor && !hitting && !playerdead)
         {
             waitfor = true;
             atacking = true;
@@ -80,6 +89,15 @@ public class Enemy : MonoBehaviour
             GetPlayer();
             waitfor = false;
         }
+
+        if (playerdead)
+        {
+            anim.SetBool("Slither Forward", false);
+            anim.SetBool("Bite Attack", false);
+            walking = false;
+            atacking = false;
+            agent.isStopped = true;
+        }
     }
 
     void GetPlayer()
@@ -88,7 +106,8 @@ public class Enemy : MonoBehaviour
         {
             if (c.gameObject.CompareTag("Player"))
             {
-                Debug.Log("Aiinnnn");
+                c.gameObject.GetComponent<Player>().getHit(atack);
+                playerdead = c.gameObject.GetComponent<Player>().isdead;
             }
         }
     }
@@ -118,10 +137,26 @@ public class Enemy : MonoBehaviour
         waitfor = false;
     }
 
+    private void movetowaypoint()
+    {
+        if (points.Count > 0)
+        {
+            float distance = Vector3.Distance(points[currentpatch].position, transform.position);
+            agent.destination = points[currentpatch].position;
+                
+            if (distance <= patchdistance)
+            {
+                currentpatch = Random.Range(0, points.Count);
+                
+            }
+            anim.SetBool("Slither Forward", true);
+            walking = true;
+        }
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, lockradius);
     }
 }
-
