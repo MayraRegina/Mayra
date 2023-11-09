@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
@@ -29,12 +30,17 @@ public class Player : MonoBehaviour
     public Transform cam;
     public Animator anim;
     public Vector3 moveDirection;
+    public Text lifeText;
+    public AudioSource walk;
+    public AudioSource Atack;
+    public AudioSource hit;
     
     [Header("List")]
     public List<Transform> enemylist = new List<Transform>();
 
     void Start()
     {
+        lifeText.text = life.ToString();
         anim = GetComponent<Animator>();
         Controler = GetComponent<CharacterController>();
         cam = Camera.main.transform;
@@ -75,6 +81,10 @@ public class Player : MonoBehaviour
 
             if (direction.magnitude > 0)
             {
+                if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.W))
+                {
+                    walk.Play();
+                }
 
                 if (!anim.GetBool("Atack"))
                 {
@@ -99,6 +109,7 @@ public class Player : MonoBehaviour
             }
             else if (iswalking)
             {
+                walk.Stop();
                 anim.SetBool("Walking", false);
                 moveDirection = Vector3.zero;
                 anim.SetInteger("Transition", 0);
@@ -140,7 +151,7 @@ public class Player : MonoBehaviour
             anim.SetBool("Atack", true);
             anim.SetInteger("Transition", 1);
             yield return new WaitForSeconds(0.52f);
-
+            Atack.Play();
             GetEnemy();
 
             foreach (Transform enemys in enemylist)
@@ -181,6 +192,8 @@ public class Player : MonoBehaviour
     public void getHit(int dmg)
     {
         life -= dmg;
+        hit.Play();
+        lifeText.text = " " + life.ToString();
         if (life > 0)
         {
             StopCoroutine("Matack");
